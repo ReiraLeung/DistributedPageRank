@@ -10,9 +10,10 @@ this project is written in python
 python worker.py web-Google 1 3
 ```
 表示关于web-Google这个图，在有3个worker计算的时候，编号为1(从0开始)的worker的启动，也就是初始化
+
 worker调用init，所以init.py也可以计算，但是并不显示结果
 
-为了输入方便，我又生成了另外两种格式  **--python worker.py 1 3--**    这时候数据库默认为test
+为了调试的输入方便，我又生成了另外两种格式  **--python worker.py 1 3--**    这时候数据库默认为test
 
 或者 **--python worker.py 1--** 这时候数据库默认为test, worker数目为3
 
