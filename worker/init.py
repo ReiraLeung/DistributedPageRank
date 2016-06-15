@@ -14,16 +14,20 @@ def command():
 		DataSet = 'test'
 		index = int(args[1])
 		totalIndex = 3
-	Nodefile = '../data/'+DataSet+'_'+str(index)+'.txt';
-	Datafile = '../data/'+DataSet+'.txt'
-	return [Nodefile,Datafile,index,totalIndex]
+	NodeFile = '../data/'+DataSet+'_'+str(index)+'.txt';
+	DataFile = '../data/'+DataSet+'.txt'
+	NodeinCount = '../data/'+DataSet+'_count_'+str(index)+'.txt'
+	NodeRankFile = '../data/'+DataSet+'_rank.txt'
+	return [NodeFile,DataFile,index,totalIndex,NodeinCount,NodeRankFile]
 
-def createNode(Nodefile,Datafile,index,totalIndex):
-	nfile = open(Nodefile,'w')
-	with open(Datafile,'r') as f:
+def createNode(NodeFile,DataFile,index,totalIndex):
+	nFile = open(NodeFile,'w')
+	maxnode = 0
+	with open(DataFile,'r') as f:
 		n = -1
-		ntTable = {-1:['-1']}
-		ntlist = []
+		ntTable = {}
+		ntList = {}
+		nfcount = {}
 		while True:
 			line=f.readline()
 			if line:
@@ -32,52 +36,118 @@ def createNode(Nodefile,Datafile,index,totalIndex):
 				split = line.find('\t')
 				nf = line[0:split]
 				nfi = int(nf)
+				nti = int(line[split+1:])
+				if nfi>maxnode:
+					maxnode = nfi
+				if nti>maxnode:
+					maxnode = nti
+				if(nfcount.get(nti,-1)==-1):
+					nfcount[nti]=1
+				else:
+					nfcount[nti] +=1
 				#print(index)
 				if nfi%totalIndex == index:
-					nti = int(line[split+1:])
 					#print(str(nfi) + " "+ str(index)+" "+str(nti)+" "+str(n))
 					if nfi!=n:
-						ntTable[n] = ntlist
+						ntTable[n] = ntList
 						n = nfi
-						ntlist=[nti]
+						ntList=[nti]
 					else:
-						ntlist.append(nti)
+						ntList.append(nti)
 			else:
-				ntTable[n] = ntlist
+				ntTable[n] = ntList
 				break
 		ntTable.pop(-1)
 		for key in ntTable:
-			nfile.write(str(key)+":"+str(ntTable[key])[1:-1]+"\n")
-		nfile.close()
-		return ntTable
+			nFile.write(str(key)+":"+str(ntTable[key])[1:-1]+"\n")
+		nFile.close()
+		return [ntTable,nfcount,maxnode]
 
-def readNode(Nodefile):
-	with open(Nodefile,'r') as f:
+
+def readNode(NodeFile):
+	with open(NodeFile,'r') as f:
 		ntTable = {}
 		while True:
 			line=f.readline()
 			if line:
 				split = line.find(':')
 				node = int(line[0:split])
-				nodetoliststr = line[split+1:]
-				nodestrlist = nodetoliststr.split(', ')
-				nodelist = []
-				for nodestr in nodestrlist:
-					nodelist.append(int(nodestr))
-				ntTable[node]=nodelist
+				nodetoListstr = line[split+1:]
+				nodestrList = nodetoListstr.split(', ')
+				nodeList = []
+				for nodestr in nodestrList:
+					nodeList.append(int(nodestr))
+				ntTable[node]=nodeList
 			else:
 				break
 		#print(ntTable)
 		return ntTable
 
+def  readNodeinCount(NodeinFile):
+	with open(NodeinFile,'r') as f:
+		inList={}
+		while True:
+			line=f.readline()
+			if line:
+				split = line.find(' ')
+				node = int(line[0:split])
+				nodein = int(line[split+1:])
+				inList[node] = nodein
+			else:
+				break
+
+		return inList
+
+def  readNodeRank(NodeRankFile,table):
+	with open(NodeRankFile,'r') as f:
+		rankList={}
+		while True:
+			line=f.readline()
+			if line:
+				split = line.find(' ')
+				node = int(line[0:split])
+				rank = float(line[split+1:])
+				if(table.get(node,-1)!=-1):
+					rankList[node] = rank
+			else:
+				break
+
+		return rankList
+
+
+
 C= command()
-print(C[0],C[1],C[2],C[3])
+#print(C[0],C[1],C[2],C[3])
 ntTable = {}
-if not os.path.exists(C[0]):
-	ntTable = createNode(C[0],C[1],C[2],C[3])
+nodeInNum = {}
+nodeRank = {}
+if not (os.path.exists(C[0]) and os.path.exists(C[4]) and os.path.exists(C[5])):
+	N = createNode(C[0],C[1],C[2],C[3])
+	print(N[2])
+	ntTable = N[0]
+
+	f = open(C[4],'w')
+	for key in ntTable:
+		nodeInNum[key] = N[1][key]
+		f.write(str(key)+" "+str(N[1][key])+"\n")
+		nodeRank[key] = 0.15
+	f.close()
+	if os.path.exists(C[5]):
+		nodeRank = readNodeRank(C[5],ntTable)
+	else:
+		f = open(C[5],'w')
+		i=0
+		while i<=N[2]:
+			f.write(str(i)+" 0.15\n")
+			i += 1
+		f.close
 else:
+
 	ntTable = readNode(C[0])
-#print(ntTalbe)
+	nodeInNum = readNodeinCount(C[4])
+	nodeRank = readNodeRank(C[5],ntTable)
+
+
 
 
 
