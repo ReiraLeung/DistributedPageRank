@@ -92,7 +92,7 @@ def  readNodeinCount(NodeinFile):
 				split = line.find(' ')
 				node = int(line[0:split])
 				nodein = int(line[split+1:])
-				inList[node] = nodein
+				inList[node] = (nodein,0)
 			else:
 				break
 
@@ -108,19 +108,18 @@ def  readNodeRank(NodeRankFile,table):
 				node = int(line[0:split])
 				rank = float(line[split+1:])
 				if(table.get(node,-1)!=-1):
-					rankList[node] = rank
+					table[node] = (table[node][0],rank)
 			else:
 				break
 
-		return rankList
+		return table
 
 
 
 C= command()
 #print(C[0],C[1],C[2],C[3])
 ntTable = {}
-nodeInNum = {}
-nodeRank = {}
+nodeInfo = {}
 if not (os.path.exists(C[0]) and os.path.exists(C[4]) and os.path.exists(C[5])):
 	N = createNode(C[0],C[1],C[2],C[3])
 	print(N[2])
@@ -128,13 +127,10 @@ if not (os.path.exists(C[0]) and os.path.exists(C[4]) and os.path.exists(C[5])):
 
 	f = open(C[4],'w')
 	for key in ntTable:
-		nodeInNum[key] = N[1][key]
+		nodeInfo[key] = (N[1][key], 0.15)
 		f.write(str(key)+" "+str(N[1][key])+"\n")
-		nodeRank[key] = 0.15
 	f.close()
-	if os.path.exists(C[5]):
-		nodeRank = readNodeRank(C[5],ntTable)
-	else:
+	if not os.path.exists(C[5]):
 		f = open(C[5],'w')
 		i=0
 		while i<=N[2]:
@@ -142,10 +138,9 @@ if not (os.path.exists(C[0]) and os.path.exists(C[4]) and os.path.exists(C[5])):
 			i += 1
 		f.close
 else:
-
 	ntTable = readNode(C[0])
-	nodeInNum = readNodeinCount(C[4])
-	nodeRank = readNodeRank(C[5],ntTable)
+	nodeInfo = readNodeinCount(C[4])
+	nodeInfo = readNodeRank(C[5],nodeInfo)
 
 
 
