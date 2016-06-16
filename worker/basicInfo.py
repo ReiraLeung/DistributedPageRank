@@ -13,7 +13,6 @@ def readConf():
   	config.read("./rabbitInfo.config") 
   	basicInfo = {}
   	basicInfo["master_host"] = config.get("basicInfo", "master_host")
-  	basicInfo["index"] = config.getint("basicInfo", "index")
   	basicInfo["total_workers"] = config.getint("basicInfo", "total_workers")
   	ipstr = config.get("basicInfo","workers_ip")
   	basicInfo["workers_ip"] = ipstr[1:len(ipstr)-1].replace("'","").split(',')
@@ -27,7 +26,7 @@ def setConf(key,val,basicInfo):
 	fp = open("./rabbitInfo.config", "w") 
 	config.write(fp)
 
-def setConf(key,val):
+def setConf(key,val):v
 	config = ConfigParser.ConfigParser() 
   	config.read("./rabbitInfo.config") 
 	config.set("basicInfo",str(key),str(val))

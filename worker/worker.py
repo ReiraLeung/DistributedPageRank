@@ -5,10 +5,8 @@ import os
 
 BI = basicInfo.basicInfo
 print str(BI)
-
+#C= [NodeFile, DataFile, index, totalIndex, NodeinCount, NodeRankFile]
 C = init.command(BI)
-BI = C[6]
-basicInfo.writeConf(BI)
 
 ntTable = {}
 nodeInfo = {}

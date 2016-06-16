@@ -14,13 +14,11 @@ def command(basicInfo):
 		DataSet = 'test'
 		index = int(args[1])
 		totalIndex = basicInfo["total_workers"]
-	if index!= basicInfo["index"]:
-		basicInfo["index"] = index
 	NodeFile = '../data/'+DataSet+'_'+str(index)+'.txt';
 	DataFile = '../data/'+DataSet+'.txt'
 	NodeinCount = '../data/'+DataSet+'_count_'+str(index)+'.txt'
 	NodeRankFile = '../data/'+DataSet+'_rank.txt'
-	return [NodeFile,DataFile,index,totalIndex,NodeinCount,NodeRankFile,basicInfo]
+	return [NodeFile,DataFile,index,totalIndex,NodeinCount,NodeRankFile]
 
 def createNode(NodeFile,DataFile,index,totalIndex):
 	nFile = open(NodeFile,'w')
