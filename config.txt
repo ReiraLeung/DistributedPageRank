@@ -1,0 +1,1 @@
+"{'host' : 'host-2', 'worker-num' : 3}"
