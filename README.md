@@ -18,7 +18,7 @@ worker调用init,但是并不显示结果
 或者 **--python worker.py 1--** 这时候数据库默认为test, worker数目为3
 
 ---
-**config文件配置基本变量
+**config文件配置基本变量**
 
 worker/rabbitInfo.config文件的阅读，修改和书写，可以通过basicInfo.py中的函数来修改。使用方法在worker中给出示例，用来存储master的ip，所有worker的ip，worker的数量，这些信息是整个系统的，大家都是一样的。
 

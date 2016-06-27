@@ -1,5 +1,5 @@
 import ConfigParser 
-import time  
+import time
 
 def writeConf(basicInfo):
 	config = ConfigParser.RawConfigParser()
