@@ -38,7 +38,7 @@ def callback(ch, method, properties, body):
         ch.basic_ack(delivery_tag = method.delivery_tag)
         sys.exit()
         
-    if (GlobalInfo['success'] == GlobalInfo['worker-num']):
+    if (GlobalInfo['finish'] == GlobalInfo['worker-num']):
         print('[*]Master has finished a superstep, superstep: %d' % GlobalInfo['superstep'])
         GlobalInfo['superstep'] += 1
         result = {
@@ -46,7 +46,7 @@ def callback(ch, method, properties, body):
             'instruction': 'start',
             'superstep' : GlobalInfo['superstep'],
             }
-        
+        refreshInfo()
         for i in range(0, GlobalInfo['worker-num']):
             channel.basic_publish(exchange='',
                       routing_key='worker-%d' % i,
