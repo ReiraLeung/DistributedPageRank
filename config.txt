@@ -1,1 +1,1 @@
-"{'host' : 'host-2', 'worker-num' : 3}"
+{"host" : "localhost", "worker-num" : 3, "total_iteration" : 5}

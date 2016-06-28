@@ -1,24 +1,19 @@
+#coding:utf-8
 import sys
 import os
-def command(basicInfo):
+def command():
 	args = sys.argv
-	if len(args)==4:
+	if len(args)==3:
 		DataSet = args[1]
 		index = int(args[2])
-		totalIndex = int(args[3])
-	elif len(args)==3:
-		DataSet = 'test'
-		index = int(args[1])
-		totalIndex = int(args[2])
 	else:
 		DataSet = 'test'
 		index = int(args[1])
-		totalIndex = basicInfo["total_workers"]
 	NodeFile = '../data/'+DataSet+'_'+str(index)+'.txt';
 	DataFile = '../data/'+DataSet+'.txt'
 	NodeinCount = '../data/'+DataSet+'_count_'+str(index)+'.txt'
 	NodeRankFile = '../data/'+DataSet+'_rank.txt'
-	return [NodeFile,DataFile,index,totalIndex,NodeinCount,NodeRankFile]
+	return [NodeFile,DataFile,index,NodeinCount,NodeRankFile]
 
 def createNode(NodeFile,DataFile,index,totalIndex):
 	nFile = open(NodeFile,'w')

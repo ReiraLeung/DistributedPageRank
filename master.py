@@ -13,7 +13,7 @@ def callback(ch, method, properties, body):
     global GlobalInfo
     mesaage = json.loads(body)
     print(" [x] Received message from %r" % message['from'])
-    if (message['superstep'] != GlobalInfo['superstep']
+    if (message['superstep'] != GlobalInfo['superstep']):
         ch.basic_ack(delivery_tag = method.delivery_tag)
         print('This message has some superstep errors!!')
         return
@@ -68,7 +68,7 @@ except:
     print('Config File Error!')
     error = 1
 finally:
-    file_object.close( )
+    config_file.close( )
     if (error == 1):
         sys.exit()
 
