@@ -3,28 +3,157 @@ import init
 import sys
 import os, json
 
+def resetInfo():
+	global GlobalInfo
+	for i in range(0, GlobalInfo['worker-num']):
+		GlobalInfo[i] = 1
+	GlobalInfo['finish'] = 0
+
+
+
+def countSendPackages(channel):
+	global GlobalInfo
+	global nodeInfo
+	global ntTable
+	global this_index
+	messages = []
+	for i in range(0, GlobalInfo['worker-num']):
+		newResult = {
+			'from': this_index,
+			'instruction': 'count',
+			'superstep':GlobalInfo['superstep']
+			'rank':{}
+			}
+		messages.append(newResult)
+	for node in ntTable:
+		nodelist = ntTable[node]
+		rank = nodeInfo[node][1]
+		total = len(nodelist)
+		sendrank = rank/total
+		for toNode in nodelist:
+			worker_id = toNode % GlobalInfo['worker-num']
+			rankDict = messages[worker_id]['rank']
+			if toNode in rankDict:
+				rankDict[toNode] = rankDict[toNode] + sendrank
+			else:
+				rankDict[toNode] = sendrank
+
+	for i in range(0, GlobalInfo['worker-num']):
+		if i == this_index:
+			if GlobalInfo[i] == 1:
+				ranks = messages[i]['rank']
+				getRankFromMessage(ranks)
+				GlobalInfo[i] = 0
+		else:
+			channel.basic_publish(exchange='',
+				routing_key='worker-%d' % i,
+				body=json.dumps(messages[i]),
+				properties=pika.BasicProperties(
+				delivery_mode = 2, # make message persistent
+				))
+			print(" worker-%d Sent to %d in round %d"%(this_index,i,GlobalInfo['superstep']))
+
+
+
+def getRankFromMessage(ranks):
+	global temprank
+	for node in ranks:
+		temprank[node] += ranks[node]
+
+def temp2dict():
+	global temprank
+	global nodeInfo
+	for node in temprank
+		nodeInfo[node][1] = temprank[node]
+		temprank[node] = 0.15  #everytime temprank is start from 0.15, not only the first time
+
+def callback(ch, method, properties, body):
+	global GlobalInfo
+	global this_index
+	message = json.loads(body)
+	print(" worker-%d: Received message from %r" %(this_index, message['from']))
+	if (message['from'] == 'master'):
+		if(message['instruction'] == 'success'):# finish signal from master
+			print("worker-%d: master ask me to exit, Byebye~"%this_index)
+			ch.basic_ack(delivery_tag = method.delivery_tag)
+			sys.exit()
+		else: # start next superstep signal form master
+			if(message['superstep'] > GlobalInfo['superstep']): #if not start, then start
+				print("worker-%d: master arrive first in this superstep, counting starts."%this_index)
+				GlobalInfo[superstep] = message['superstep']
+				resetInfo()
+				countSendPackages(channel)
+				GlobalInfo['finish'] += 1 # this is from worker-i itself
+			else:
+				print("worker-%d: master arrive later, counting is already started, but this is OK."%this_index)
+	else:
+		fromID = (message['from']
+		if(GlobalInfo[fromID] == 1):
+			if(message['superstep'] > GlobalInfo['superstep']): #if not start, then start
+				print("worker-%d: worker-%d arrives first in this superstep %d, counting starts."%(this_index,fromID,message['superstep']))
+				GlobalInfo['superstep'] = message['superstep']
+					resetInfo()
+				countSendPackages(channel)
+				getRankFromMessage(message['rank'])
+				GlobalInfo['finish'] += GlobalInfo[fromID]
+			else
+				print("worker-%d: worker-%d arrives in this superstep %d, counting is already started."%(this_index,fromID,message['superstep']))
+				getRankFromMessage(message['rank'])
+				GlobalInfo['finish'] += GlobalInfo[fromID]
+			
+			GlobalInfo[fromID] = 0 #this message is readalready in thie superstep, set it to 0
+			if GlobalInfo['finish']==GlobalInfo['worker-num']: #if worker-i received all messages in one superstep
+				print('[*]worker-%d: worker has finished a superstep: %d' % (this_index, GlobalInfo['superstep']))
+				temp2dict() # copy the temp counting result to middle dictionary nodeInfo, but not the file!
+				###############################
+				#!!!!here store the nodeInfo in file!!!!
+				################################
+				if(GlobalInfo['superstep'] < GlobalInfo['total_iteration']):
+					signal = 'finish'
+				else:
+					signal = 'success'
+				
+				result = {
+					'from': this_index,
+					'result': signal,
+					'superstep' : GlobalInfo['superstep'],
+					}
+				ch.basic_ack(delivery_tag = method.delivery_tag)
+				print('[*]worker-%d: Sent signal %s to master' % (this_index,signal))
+				channel.basic_publish(exchange='',
+                      routing_key='master'
+                      body=json.dumps(result),
+                      properties=pika.BasicProperties(
+                         delivery_mode = 2, # make message persistent
+                      ))
+
 error = 0
 config_file = open('../config.txt')
 global GlobalInfo
 GlobalInfo = {}
 try:
-    GlobalInfo = json.loads( config_file.read( ))
+	GlobalInfo = json.loads( config_file.read( ))
 except:
-    print('Config File Error!')
-    error = 1
+	print('Config File Error!')
+	error = 1
 finally:
-    config_file.close( )
-    if (error == 1):
-        sys.exit()
+	config_file.close( )
+	if (error == 1):
+		sys.exit()
 
 print (GlobalInfo['worker-num'])
 #C= [NodeFile, DataFile, index, NodeinCount, NodeRankFile]
 C = init.command()
-
+global this_index
+this_index = C[2]
+global ntTable
+global nodeInfo
+global temprank
 ntTable = {}
 nodeInfo = {}
+temprank = {}
 if not (os.path.exists(C[0]) and os.path.exists(C[3]) and os.path.exists(C[4])):
-	N = init.createNode(C[0],C[1],C[2],GlobalInfo['worker-num'])
+	N = init.createNode(C[0],C[1],this_index,GlobalInfo['worker-num'])
 	print(N[2])
 	ntTable = N[0]
 
@@ -44,21 +173,25 @@ else:
 	ntTable = init.readNode(C[0])
 	nodeInfo = init.readNodeinCount(C[3])
 	nodeInfo = init.readNodeRank(C[4],nodeInfo)
-
-
 print(str(ntTable))
 print(str(nodeInfo))
 
-GlobalInfo['superstep'] = 0
-GlobalInfo['finish'] = 0
-GlobalInfo['success'] = 0
+for node in nodeInfo: #everytime temprank is start from 0.15, not only the first time
+	temprank[node] = 0.15 
+
 connection = pika.BlockingConnection(pika.ConnectionParameters(
         host= GlobalInfo['host']))
 channel = connection.channel()
+
+GlobalInfo['superstep'] = 0
+resetInfo()
+
 channel.queue_declare(queue='master', durable=True)
 for i in range(0, GlobalInfo['worker-num']):
     channel.queue_declare(queue='worker-%d' % i, durable=True)
-    GlobalInfo[i] = 1
     
 channel.basic_consume(callback,
-                queue='worker-%d' % i,)
+                queue='worker-%d' % this_index)
+
+print('worder%d: Start to listen to message queue...'% this_index)
+channel.start_consuming()
