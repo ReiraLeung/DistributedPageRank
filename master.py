@@ -12,15 +12,16 @@ def resetInfo():
 def callback(ch, method, properties, body):
     global GlobalInfo
     mesaage = json.loads(body)
-    print(" [x] Received message from %r" % message['from'])
+    fromID = int(message['from'])
+    print(" [x] Received message from %r" % fromID)
     if (message['superstep'] != GlobalInfo['superstep']):
         ch.basic_ack(delivery_tag = method.delivery_tag)
         print('This message has some superstep errors!!')
         return
-    GlobalInfo['finish'] += GlobalInfo[message['from']]
+    GlobalInfo['finish'] += GlobalInfo[fromID]
     if (message['result'] == 'success'):
-        GlobalInfo['success'] += GlobalInfo[message['from']]
-    GlobalInfo[message['from']] = 0
+        GlobalInfo['success'] += GlobalInfo[fromID]
+    GlobalInfo[fromID] = 0
     
     if (GlobalInfo['success'] == GlobalInfo['worker-num']):
         result = {
