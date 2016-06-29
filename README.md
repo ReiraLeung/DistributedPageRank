@@ -86,7 +86,29 @@ if 收到结束消息
 --------------------------------------------------------
 ### 梁竞月 6.29日更新
 
-感觉worker部分除了关闭恢复，其他的部分都写完了，还没开始调试，估计会有些一些bug，今晚开始调试
+感觉worker部分除了故障恢复，都写完了，代码已经调通，但是还没有运行过大数据
+现在在单机上运行步骤如下
+
+```
+* 首先需要
+rabbitmq-server start
+* 然后运行
+python master.py
+
+* 然后在三个Command下运行,这时候是数据库test，你可以把数据库的名字，放在数字之前。
+python worker.py 0
+python worker.py 1
+python worker.py 2
+
+* 如果出现错误，rabbitmq的队列需要清空的，走下列三步即可，不需要关闭server
+liangjingyue$ rabbitmqctl stop_app
+Stopping node rabbit@localhost ...
+liangjingyue$ rabbitmqctl reset
+Resetting node rabbit@localhost ...
+liangjingyue$ rabbitmqctl start_app
+Starting node rabbit@localhost ...
+
+```
 
 ####我来明确一下重要的数据结构。
 ```
@@ -129,9 +151,6 @@ message——WorkerI2WorkerJ = {
 		rank就是传递数据的主体了，rank是一个dictionary，表示i发给j的节点变更值。
 }
 ```
-####接下来的工作
-1) 能在两台机器上运行起来，调通代码
 
-2) 加入恢复机制
 
-3) *考虑合并数据库。
+### 接下来的工作就是家属snapshot和故障恢复啦，加油~
