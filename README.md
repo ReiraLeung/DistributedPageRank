@@ -89,6 +89,7 @@ if 收到结束消息
 感觉worker部分除了关闭恢复，其他的部分都写完了，还没开始调试，估计会有些一些bug，今晚开始调试
 
 ####我来明确一下重要的数据结构。
+```
 master_globalInfo = {
 	host :string, 表示RabbitMQ server所在的IP
 	total_iteration :数字，表示pagerank要求的迭代次数
@@ -127,6 +128,7 @@ message——WorkerI2WorkerJ = {
 		}
 		rank就是传递数据的主体了，rank是一个dictionary，表示i发给j的节点变更值。
 }
+```
 ####接下来的工作
 1) 能在两台机器上运行起来，调通代码
 
