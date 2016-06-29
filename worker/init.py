@@ -13,7 +13,7 @@ def command():
 	DataFile = '../data/'+DataSet+'.txt'
 	NodeinCount = '../data/'+DataSet+'_count_'+str(index)+'.txt'
 	NodeRankFile = '../data/'+DataSet+'_rank.txt'
-	return [NodeFile,DataFile,index,NodeinCount,NodeRankFile]
+	return [NodeFile,DataFile,index,NodeinCount,NodeRankFile,DataSet]
 
 def createNode(NodeFile,DataFile,index,totalIndex):
 	nFile = open(NodeFile,'w')
