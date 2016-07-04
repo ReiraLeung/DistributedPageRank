@@ -3,6 +3,7 @@ import init
 import sys
 import pika
 import os, json
+import snap
 
 def resetInfo():
 	global GlobalInfo
@@ -81,23 +82,31 @@ def callback(ch, method, properties, body):
 	global GlobalInfo
 	global this_index
 	global temprank
+	global DataSet
 	message = json.loads(str(body)[2:-1])
 	print("[+] worker-%d: Received message from %r" %(this_index, message['from']))
 	if (message['from'] == 'master'):
+		# if message['superstep'] == 3:
+		# 	print('test recover, so exit')
+		# 	sys.exit()
 		if(message['instruction'] == 'success'):# finish signal from master
 			print("worker-%d: master ask me to exit, Byebye~"%this_index)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 			sys.exit()
 		else: # start next superstep signal form master
 			if(message['superstep'] > GlobalInfo['superstep']): #if not start, then start
-				print("worker-%d: master arrive first in this superstep, counting starts."%this_index)
+				print("worker-%d: master arrive first in this superstep %d counting starts."%(this_index,message['superstep']))
 				GlobalInfo['superstep'] = message['superstep']
 				resetInfo()
 				countSendPackages(channel)
 			else:
 				print("worker-%d: master arrive later, counting is already started, but this is OK."%this_index)
+			ch.basic_ack(delivery_tag = method.delivery_tag)
 	else:
 		fromID = message['from']
+		print ('message superstep: %d' % message['superstep'])
+		print ('local superstep: %d' % GlobalInfo['superstep'])
+		print ('GlobalInfo[fromID]: %d' % GlobalInfo[fromID])
 		if GlobalInfo[fromID] == 1:
 			if(message['superstep'] > GlobalInfo['superstep']): #if not start, then start
 				print("worker-%d: worker-%d arrives first in this superstep %d, counting starts."%(this_index,fromID,message['superstep']))
@@ -121,13 +130,16 @@ def callback(ch, method, properties, body):
 					###############################
 					#!!!!here store the nodeInfo in snap file!!!!
 					################################
+					snap.snapshot(nodeInfo, DataSet, this_index)
+					################################
 				else:
 					signal = 'success'
 					final_temp2dict()
 					###############################
 					#!!!!here store the nodeInfo in final file!!!!
 					################################
-				
+					snap.snap_swap(DataSet, this_index)
+					################################
 				result = {
 					'from': this_index,
 					'result': signal,
@@ -135,7 +147,6 @@ def callback(ch, method, properties, body):
 					}
 				if signal=='success':
 					result['rank'] = temprank
-				ch.basic_ack(delivery_tag = method.delivery_tag)
 				print('worker-%d: Sent signal %s to master' % (this_index,signal))
 				print("---------------------------------------")
 				channel.basic_publish(exchange='',
@@ -144,6 +155,7 @@ def callback(ch, method, properties, body):
                       properties=pika.BasicProperties(
                          delivery_mode = 2, # make message persistent
                       ))
+		ch.basic_ack(delivery_tag = method.delivery_tag)
 
 error = 0
 config_file = open('../config.txt')
@@ -159,20 +171,22 @@ finally:
 	if (error == 1):
 		sys.exit()
 
-print (GlobalInfo['worker-num'])
-#C= [NodeFile, DataFile, index, NodeinCount, NodeRankFile]
+print ('worker-num: '+str(GlobalInfo['worker-num']))
+#C= [NodeFile, DataFile, index, NodeinCount, NodeRankFile,DataSet]
 C = init.command()
 global this_index
 this_index = C[2]
 global ntTable
 global nodeInfo
 global temprank
+global DataSet
 ntTable = {}
 nodeInfo = {}
 temprank = {}
+DataSet = C[5]
 if not (os.path.exists(C[0]) and os.path.exists(C[3]) and os.path.exists(C[4])):
 	N = init.createNode(C[0],C[1],this_index,GlobalInfo['worker-num'])
-	print(N[2])
+	print('nfCount: '+str(N[2]))
 	ntTable = N[0]
 
 	f = open(C[3],'w')
@@ -189,10 +203,19 @@ if not (os.path.exists(C[0]) and os.path.exists(C[3]) and os.path.exists(C[4])):
 		f.close
 else:
 	ntTable = init.readNode(C[0])
-	nodeInfo = init.readNodeinCount(C[3])
-	nodeInfo = init.readNodeRank(C[4],nodeInfo)
-print(str(ntTable))
-print(str(nodeInfo))
+	#############################
+	#recover from snapshot
+	#############################
+	snapFile = '../data/'+DataSet+'_'+str(this_index)+'.snap'
+	if os.path.exists(snapFile):
+		print('recover...')
+		nodeInfo = snap.recoverNodeInfo(DataSet, this_index)
+		print(nodeInfo)
+	else:
+		nodeInfo = init.readNodeinCount(C[3])
+		nodeInfo = init.readNodeRank(C[4],nodeInfo)
+print('ntTable: '+str(ntTable))
+print('nodeInfo: '+str(nodeInfo))
 
 for node in nodeInfo: #everytime temprank is start from 0.15, not only the first time
 	temprank[int(node)] = 0.15 
