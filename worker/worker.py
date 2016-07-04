@@ -45,6 +45,7 @@ def countSendPackages(channel):
 			if GlobalInfo[i] == 1:
 				ranks = messages[i]['rank']
 				getRankFromMessage(ranks)
+				GlobalInfo['finish'] += 1 # this is from worker-i itself
 				GlobalInfo[i] = 0
 		else:
 			#print (str(json.dumps(messages[i])))
@@ -93,7 +94,6 @@ def callback(ch, method, properties, body):
 				GlobalInfo['superstep'] = message['superstep']
 				resetInfo()
 				countSendPackages(channel)
-				GlobalInfo['finish'] += 1 # this is from worker-i itself
 			else:
 				print("worker-%d: master arrive later, counting is already started, but this is OK."%this_index)
 	else:
