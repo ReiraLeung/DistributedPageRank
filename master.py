@@ -39,7 +39,11 @@ def callback(ch, method, properties, body):
 						 delivery_mode = 2, # make message persistent
 					  ))
 		print('[*]Master has finished all jobs, superstep: %d' % GlobalInfo['superstep'])
-		print(str(finalResult))
+		#print(str(finalResult))
+		final = open('final_res','w')
+		for k in sorted(finalResult.keys()):
+			final.write('%d %f\n' % (k, finalResult[k]))
+		final.close()
 		###############################
 		#finalResult 应该被写进文件里
 		###############################
