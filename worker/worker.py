@@ -3,6 +3,7 @@ import init
 import sys
 import pika
 import os, json
+import snap
 
 def resetInfo():
 	global GlobalInfo
@@ -80,6 +81,7 @@ def callback(ch, method, properties, body):
 	global GlobalInfo
 	global this_index
 	global temprank
+	global DataSet
 	message = json.loads(str(body)[2:-1])
 	print("[+] worker-%d: Received message from %r" %(this_index, message['from']))
 	if (message['from'] == 'master'):
@@ -121,13 +123,16 @@ def callback(ch, method, properties, body):
 					###############################
 					#!!!!here store the nodeInfo in snap file!!!!
 					################################
+					snap.snapshot(nodeInfo, DataSet, this_index)
+					################################
 				else:
 					signal = 'success'
 					final_temp2dict()
 					###############################
 					#!!!!here store the nodeInfo in final file!!!!
 					################################
-				
+					snap.snap_swap(DataSet, this_index)
+					################################
 				result = {
 					'from': this_index,
 					'result': signal,
@@ -160,16 +165,18 @@ finally:
 		sys.exit()
 
 print (GlobalInfo['worker-num'])
-#C= [NodeFile, DataFile, index, NodeinCount, NodeRankFile]
+#C= [NodeFile, DataFile, index, NodeinCount, NodeRankFile,DataSet]
 C = init.command()
 global this_index
 this_index = C[2]
 global ntTable
 global nodeInfo
 global temprank
+global DataSet
 ntTable = {}
 nodeInfo = {}
 temprank = {}
+DataSet = C[5]
 if not (os.path.exists(C[0]) and os.path.exists(C[3]) and os.path.exists(C[4])):
 	N = init.createNode(C[0],C[1],this_index,GlobalInfo['worker-num'])
 	print(N[2])
@@ -189,8 +196,15 @@ if not (os.path.exists(C[0]) and os.path.exists(C[3]) and os.path.exists(C[4])):
 		f.close
 else:
 	ntTable = init.readNode(C[0])
-	nodeInfo = init.readNodeinCount(C[3])
-	nodeInfo = init.readNodeRank(C[4],nodeInfo)
+	#############################
+	#recover from snapshot
+	#############################
+	snapFile = '../data/'+DataSet+'_'+str(worker_index)+'.snap'
+	if os.path.exists(snapFile):
+		nodeInfo = recoverNodeInfo(DataSet, this_index)
+	else:
+		nodeInfo = init.readNodeinCount(C[3])
+		nodeInfo = init.readNodeRank(C[4],nodeInfo)
 print(str(ntTable))
 print(str(nodeInfo))
 
