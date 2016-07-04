@@ -85,7 +85,9 @@ def callback(ch, method, properties, body):
 	global DataSet
 	message = json.loads(str(body)[2:-1])
 	print("[+] worker-%d: Received message from %r" %(this_index, message['from']))
-	if (message['from'] == 'master'):
+	if (message['superstep'] < GlobalInfo['superstep']):
+		print(' [*] worker-%d: Received superstep %d message, now is superstep %d' %(this_index, message['superstep'], GlobalInfo['superstep']))
+	elif (message['from'] == 'master'):
 		# if message['superstep'] == 3:
 		# 	print('test recover, so exit')
 		# 	sys.exit()
@@ -97,7 +99,7 @@ def callback(ch, method, properties, body):
 			if(message['superstep'] > GlobalInfo['superstep']): #if not start, then start
 				print("worker-%d: master arrive first in this superstep %d counting starts."%(this_index,message['superstep']))
 				GlobalInfo['superstep'] = message['superstep']
-				resetInfo()
+				#resetInfo()
 				countSendPackages(channel)
 			else:
 				print("worker-%d: master arrive later, counting is already started, but this is OK."%this_index)
@@ -111,7 +113,7 @@ def callback(ch, method, properties, body):
 			if(message['superstep'] > GlobalInfo['superstep']): #if not start, then start
 				print("worker-%d: worker-%d arrives first in this superstep %d, counting starts."%(this_index,fromID,message['superstep']))
 				GlobalInfo['superstep'] = message['superstep']
-				resetInfo()
+				#resetInfo()
 				countSendPackages(channel)
 				getRankFromMessage(message['rank'])
 				GlobalInfo['finish'] += GlobalInfo[fromID]
@@ -119,6 +121,7 @@ def callback(ch, method, properties, body):
 				print("worker-%d: worker-%d arrives in this superstep %d, add this to counting."%(this_index,fromID,message['superstep']))
 				getRankFromMessage(message['rank'])
 				GlobalInfo['finish'] += GlobalInfo[fromID]
+			# snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
 			
 			GlobalInfo[fromID] = 0 #this message is readalready in thie superstep, set it to 0
 			print("worker-%d: message of worker-%d has been handled in this superstep %d."%(this_index,fromID,message['superstep']))
@@ -130,15 +133,18 @@ def callback(ch, method, properties, body):
 					###############################
 					#!!!!here store the nodeInfo in snap file!!!!
 					################################
-					snap.snapshot(nodeInfo, DataSet, this_index)
+					
 					################################
+					resetInfo()
+					snap.snapshotSuperstep(nodeInfo,DataSet,this_index)
+					# snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
 				else:
 					signal = 'success'
 					final_temp2dict()
 					###############################
 					#!!!!here store the nodeInfo in final file!!!!
 					################################
-					snap.snap_swap(DataSet, this_index)
+					snap.finalChange(DataSet, this_index)
 					################################
 				result = {
 					'from': this_index,
@@ -155,6 +161,7 @@ def callback(ch, method, properties, body):
                       properties=pika.BasicProperties(
                          delivery_mode = 2, # make message persistent
                       ))
+			snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
 		ch.basic_ack(delivery_tag = method.delivery_tag)
 
 error = 0
@@ -206,11 +213,15 @@ else:
 	#############################
 	#recover from snapshot
 	#############################
-	snapFile = '../data/'+DataSet+'_'+str(this_index)+'.snap'
-	if os.path.exists(snapFile):
-		print('recover...')
-		nodeInfo = snap.recoverNodeInfo(DataSet, this_index)
+	ssnapFile = '../data/'+DataSet+'_'+str(this_index)+'.ssnap'
+	msnapFile = '../data/'+DataSet+'_'+str(this_index)+'.msnap'
+	if os.path.exists(msnapFile) and os.path.exists(ssnapFile):
+		print('########### recover begin ###########')
+		snap.recoverState(DataSet, this_index, GlobalInfo, nodeInfo, temprank)
+		print(temprank)
 		print(nodeInfo)
+		print(GlobalInfo)
+		print('########### recover finish ###########')
 	else:
 		nodeInfo = init.readNodeinCount(C[3])
 		nodeInfo = init.readNodeRank(C[4],nodeInfo)

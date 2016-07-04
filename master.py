@@ -30,6 +30,7 @@ def callback(ch, method, properties, body):
 		result = {
 			'from': 'master',
 			'instruction': 'success',
+			'superstep' : GlobalInfo['superstep'],
 			}
 		for i in range(0, GlobalInfo['worker-num']):
 			channel.basic_publish(exchange='',
