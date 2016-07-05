@@ -31,6 +31,8 @@ def countSendPackages(channel):
 		nodelist = ntTable[node]
 		rank = nodeInfo[node][1]
 		total = len(nodelist)
+		if total == 0:
+			continue
 		sendrank = rank/total
 		for toNodestr in nodelist:
 			toNode  = int(toNodestr)
@@ -122,7 +124,7 @@ def callback(ch, method, properties, body):
 				getRankFromMessage(message['rank'])
 				GlobalInfo['finish'] += GlobalInfo[fromID]
 			# snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
-			
+			snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
 			GlobalInfo[fromID] = 0 #this message is readalready in thie superstep, set it to 0
 			print("worker-%d: message of worker-%d has been handled in this superstep %d."%(this_index,fromID,message['superstep']))
 			if GlobalInfo['finish']==GlobalInfo['worker-num']: #if worker-i received all messages in one superstep
@@ -161,7 +163,6 @@ def callback(ch, method, properties, body):
                       properties=pika.BasicProperties(
                          delivery_mode = 2, # make message persistent
                       ))
-			snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
 		ch.basic_ack(delivery_tag = method.delivery_tag)
 
 error = 0
@@ -218,9 +219,9 @@ else:
 	if os.path.exists(msnapFile) and os.path.exists(ssnapFile):
 		print('########### recover begin ###########')
 		snap.recoverState(DataSet, this_index, GlobalInfo, nodeInfo, temprank)
-		print(temprank)
-		print(nodeInfo)
-		print(GlobalInfo)
+		# print(temprank)
+		# print(nodeInfo)
+		# print(GlobalInfo)
 		print('########### recover finish ###########')
 	else:
 		nodeInfo = init.readNodeinCount(C[3])

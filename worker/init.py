@@ -18,64 +18,74 @@ def command():
 def createNode(NodeFile,DataFile,index,totalIndex):
 	nFile = open(NodeFile,'w')
 	maxnode = 0
-	with open(DataFile,'r') as f:
-		n = -1
-		ntTable = {}
-		ntList = {}
-		nfcount = {}
-		while True:
-			line=f.readline()
-			if line:
-				if (line.find('#')>=0):
-					continue
-				split = line.find('\t')
-				nf = line[0:split]
-				nfi = int(nf)
-				nti = int(line[split+1:])
-				if nfi>maxnode:
-					maxnode = nfi
-				if nti>maxnode:
-					maxnode = nti
-				if(nfcount.get(nti,-1)==-1):
-					nfcount[nti]=1
-				else:
-					nfcount[nti] +=1
-				#print(index)
-				if nfi%totalIndex == index:
-					#print(str(nfi) + " "+ str(index)+" "+str(nti)+" "+str(n))
-					if nfi!=n:
-						ntTable[n] = ntList
-						n = nfi
-						ntList=[nti]
-					else:
-						ntList.append(nti)
+	ntTable = {}
+	# ntList = {}
+	nfcount = {}
+
+	raw = open(DataFile, 'r')
+	raw_lines = []
+	for line in raw:
+		if (line.find('#') >= 0):
+			continue
+		raw_lines.append(line)
+	for line in raw_lines:
+		split_line = line.split('\t')
+		node_from = int(split_line[0])
+		node_to = int(split_line[1])
+		if node_from > maxnode:
+			maxnode = node_from
+		if node_to > maxnode:
+			maxnode = node_to
+		if node_from % totalIndex == index:
+			if (ntTable.get(node_from, -1) == -1):
+				ntTable[node_from] = []
 			else:
-				ntTable[n] = ntList
-				break
-		ntTable.pop(-1)
-		for key in ntTable:
-			nFile.write(str(key)+":"+str(ntTable[key])[1:-1]+"\n")
-		nFile.close()
-		return [ntTable,nfcount,maxnode]
+				ntTable[node_from].append(node_to)
+
+			if (nfcount.get(node_from, -1) == -1):
+				nfcount[node_from] = 0
+		if node_to % totalIndex == index:
+			if (ntTable.get(node_to, -1) == -1):
+				ntTable[node_to] = []
+
+			if (nfcount.get(node_to, -1) == -1):
+				nfcount[node_to] = 0
+			else:
+				nfcount[node_to] += 1
+	for key in ntTable:
+		nFile.write(str(key)+':'+str(ntTable[key])[1:-1]+"\n")
+	nFile.close()
+	print (ntTable)
+	print (nfcount)
+	return [ntTable,nfcount,maxnode]
 
 
 def readNode(NodeFile):
 	with open(NodeFile,'r') as f:
 		ntTable = {}
-		while True:
-			line=f.readline()
-			if line:
-				split = line.find(':')
-				node = int(line[0:split])
-				nodetoListstr = line[split+1:]
-				nodestrList = nodetoListstr.split(', ')
-				nodeList = []
-				for nodestr in nodestrList:
-					nodeList.append(int(nodestr))
-				ntTable[node]=nodeList
-			else:
-				break
+		# while True:
+		# 	line=f.readline()
+		# 	if line:
+		# 		split = line.find(':')
+		# 		node = int(line[0:split])
+		# 		nodetoListstr = line[split+1:]
+		# 		nodestrList = nodetoListstr.split(', ')
+		# 		nodeList = []
+		# 		for nodestr in nodestrList:
+		# 			nodeList.append(int(nodestr))
+		# 		ntTable[node]=nodeList
+		# 	else:
+		# 		break
 		#print(ntTable)
+		for line in f:
+			split_line = line.split(':')
+			node = int(split_line[0])
+			node_str = split_line[1]
+			node_to_list = node_str.split(', ')
+			ntTable[node] = []
+			for node_to in node_to_list:
+				if (node_to != "\n"):
+					ntTable[node].append(int(node_to))
 		return ntTable
 
 def  readNodeinCount(NodeinFile):
