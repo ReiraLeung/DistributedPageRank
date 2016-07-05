@@ -105,6 +105,7 @@ def callback(ch, method, properties, body):
 				countSendPackages(channel)
 			else:
 				print("worker-%d: master arrive later, counting is already started, but this is OK."%this_index)
+			snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
 			ch.basic_ack(delivery_tag = method.delivery_tag)
 	else:
 		fromID = message['from']
@@ -112,6 +113,7 @@ def callback(ch, method, properties, body):
 		print ('local superstep: %d' % GlobalInfo['superstep'])
 		print ('GlobalInfo[fromID]: %d' % GlobalInfo[fromID])
 		if GlobalInfo[fromID] == 1:
+			Message_shot = True
 			if(message['superstep'] > GlobalInfo['superstep']): #if not start, then start
 				print("worker-%d: worker-%d arrives first in this superstep %d, counting starts."%(this_index,fromID,message['superstep']))
 				GlobalInfo['superstep'] = message['superstep']
@@ -124,7 +126,7 @@ def callback(ch, method, properties, body):
 				getRankFromMessage(message['rank'])
 				GlobalInfo['finish'] += GlobalInfo[fromID]
 			# snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
-			snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
+			
 			GlobalInfo[fromID] = 0 #this message is readalready in thie superstep, set it to 0
 			print("worker-%d: message of worker-%d has been handled in this superstep %d."%(this_index,fromID,message['superstep']))
 			if GlobalInfo['finish']==GlobalInfo['worker-num']: #if worker-i received all messages in one superstep
@@ -147,6 +149,7 @@ def callback(ch, method, properties, body):
 					#!!!!here store the nodeInfo in final file!!!!
 					################################
 					snap.finalChange(DataSet, this_index)
+					Message_shot = False
 					################################
 				result = {
 					'from': this_index,
@@ -163,6 +166,8 @@ def callback(ch, method, properties, body):
                       properties=pika.BasicProperties(
                          delivery_mode = 2, # make message persistent
                       ))
+			if Message_shot:
+				snap.snapshotMessage(temprank, DataSet, this_index, GlobalInfo)
 		ch.basic_ack(delivery_tag = method.delivery_tag)
 
 error = 0
@@ -192,6 +197,7 @@ ntTable = {}
 nodeInfo = {}
 temprank = {}
 DataSet = C[5]
+recover_flag = False
 if not (os.path.exists(C[0]) and os.path.exists(C[3]) and os.path.exists(C[4])):
 	N = init.createNode(C[0],C[1],this_index,GlobalInfo['worker-num'])
 	print('nfCount: '+str(N[2]))
@@ -221,7 +227,7 @@ else:
 		snap.recoverState(DataSet, this_index, GlobalInfo, nodeInfo, temprank)
 		# print(temprank)
 		# print(nodeInfo)
-		# print(GlobalInfo)
+		recover_flag = True
 		print('########### recover finish ###########')
 	else:
 		nodeInfo = init.readNodeinCount(C[3])
@@ -236,12 +242,14 @@ connection = pika.BlockingConnection(pika.ConnectionParameters(
         host= GlobalInfo['host']))
 channel = connection.channel()
 
-GlobalInfo['superstep'] = 0
-resetInfo()
+if not recover_flag:
+	GlobalInfo['superstep'] = 0
+	resetInfo()
 
 channel.queue_declare(queue='master', durable=True)
 for i in range(0, GlobalInfo['worker-num']):
     channel.queue_declare(queue='worker-%d' % i, durable=True)
+
     
 channel.basic_consume(callback,
                 queue='worker-%d' % this_index)

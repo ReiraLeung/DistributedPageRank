@@ -56,6 +56,7 @@ def recoverState(DataSet,worker_index,GlobalInfo, nodeInfo, temprank):
         node = int(split_rank[0])
         nrank = float(split_rank[1])
         temprank[node] = nrank
+    # print (GlobalInfo)
     
 def finalChange(DataSet, worker_index):
     oldID = '../data/'+DataSet+'_'+str(worker_index)+'.ssnap'
