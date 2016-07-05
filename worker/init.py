@@ -55,8 +55,6 @@ def createNode(NodeFile,DataFile,index,totalIndex):
 	for key in ntTable:
 		nFile.write(str(key)+':'+str(ntTable[key])[1:-1]+"\n")
 	nFile.close()
-	print (ntTable)
-	print (nfcount)
 	return [ntTable,nfcount,maxnode]
 
 
